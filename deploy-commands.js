@@ -1,13 +1,16 @@
+const fs = require('fs');
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const {REST} = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const {clientId, guildId, token} = require('./config.json');
 
-const commands = [
-    new SlashCommandBuilder().setName('hi').setDescription("Just say 'Hello' on own 'language'"),
-    new SlashCommandBuilder().setName('user-info').setDescription('Describes an user')
-]
-.map(command => command.toJSON());
+const commands = [];
+const commandFiles = fs.readdirSync('./commands/textCommands').filter(file => file.endsWith('.js'));
+
+commandFiles.forEach(file => {
+    const command = require(`./commands/textCommands/${file}`);
+    commands.push(command.data.toJSON());
+})
 
 const rest = new REST({version: 9}).setToken(token);
 

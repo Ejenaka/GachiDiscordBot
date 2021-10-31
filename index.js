@@ -1,8 +1,15 @@
-const { Client, Intents } = require('discord.js');
+const fs = require('fs');
+const { Client, Collection, Intents } = require('discord.js');
 const { token } = require('./config.json');
-const client = new Client({intents: [Intents.FLAGS.GUILDS]});
 
-const roleDataManager = require('./data/services/RoleDataManager');
+const client = new Client({intents: [Intents.FLAGS.GUILDS]});
+client.commands = new Collection;
+
+const commandFiles = fs.readdirSync('./commands/textCommands').filter(file => file.endsWith('.js'));
+commandFiles.forEach(file => {
+    const command = require(`./commands/textCommands/${file}`);
+    client.commands.set(command.data.name, command);
+});
 
 client.once('ready', () => {
     console.log('ready');
@@ -15,22 +22,16 @@ client.on('interactionCreate', async interaction =>{
         return;
     }
 
-    const { commandName } = interaction;
+    const command = client.commands.get(interaction.commandName);
 
-    switch (commandName) {
-        case 'hi':
-            await interaction.reply("Hello, fucking slave!. My name is Van. I'm Dungeon Master here");
-            break;
-        case 'user-info':
-            const userGachiRole = roleDataManager.getRoleByUserId(interaction.user.id);
-            if (userGachiRole) {
-                await interaction.reply(`Your name is ${interaction.user.username}\n I think you are ${userGachiRole} here.`);
-            } else {
-                await interaction.reply(`Your name is ${interaction.user.username}\n I think you are just jabroni here.`);
-            }
-            break;
-        default:
-            await interaction.reply(`${interaction.user.username}, write correct command, fucking slave`);
-            break;
+    if (!command) {
+        return;
+    }
+
+    try {
+        await command.execute(interaction);
+    } catch (error) {
+        console.log(error);
+        await interaction.reply({content: `${interaction.user.username}, write correct command, fucking slave`, ephemeral: true});
     }
 })
